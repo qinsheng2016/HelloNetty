@@ -27,6 +27,7 @@ public class Client {
                         System.out.println("not connected");
                     } else {
                         System.out.println("connected");
+                        // 连接成功后，channel初始化
                         channel = channelFuture.channel();
                     }
                 }
@@ -44,6 +45,7 @@ public class Client {
     }
 
     public void send(String message) {
+        // 向服务端发送数据
         ByteBuf buf = Unpooled.copiedBuffer(message.getBytes());
         channel.writeAndFlush(buf);
     }
@@ -72,6 +74,7 @@ class ClientHandler extends ChannelInboundHandlerAdapter{
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
 //        ctx.writeAndFlush(new TankMsg(5, 8));
+        // channel 创建成功后， 向服务端发送第一条数据
         ByteBuf buf = Unpooled.copiedBuffer("Hello".getBytes());
         ctx.writeAndFlush(buf);
 

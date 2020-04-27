@@ -24,14 +24,16 @@ public class Server {
             ServerBootstrap b = new ServerBootstrap();
             ChannelFuture f = b.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
+                    // 等待客户端的连接，连上一个，创建一个socketChannel
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
+                            ServerFrame.INSTANCE.updateServerMsg("channel init" + socketChannel.remoteAddress());
                             ChannelPipeline pl = socketChannel.pipeline();  // 责任链的处理方式
-//                            pl.addLast(new TankMsgDecoder())
-                                    pl.addLast(new ServerChildHandler());
+//                            pl.addLast(new TankMsgDecoder())  // 解码
+                                    pl.addLast(new ServerChildHandler());   // 增加处理事件
                         }
-                    }).bind(8988).sync();
+                    }).bind(8988).sync();   // 绑定端口， 等待连接
 
             ServerFrame.INSTANCE.updateServerMsg("Server started");
             f.channel().closeFuture().sync();
@@ -49,12 +51,15 @@ public class Server {
 class ServerChildHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        ServerFrame.INSTANCE.updateServerMsg("Channel add to the group");
+        // 将新创建的channel 加入到group中。
         Server.clients.add(ctx.channel());
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 
+        //读取数据
         ByteBuf buf = null;
         try {
             buf = (ByteBuf)msg;
@@ -71,6 +76,7 @@ class ServerChildHandler extends ChannelInboundHandlerAdapter {
                 ServerFrame.INSTANCE.updateServerMsg(s);
                 ServerFrame.INSTANCE.updateClientMsg(s);
 
+                // 向所有的客户端回写数据
                 Server.clients.writeAndFlush(msg);
             }
         } finally {
